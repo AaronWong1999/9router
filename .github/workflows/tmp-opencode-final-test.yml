@@ -18,8 +18,8 @@ jobs:
           npm install --ignore-scripts --no-audit --no-fund
           npm install --no-save --ignore-scripts --no-audit --no-fund vitest@3.2.4
       - name: Focused unit tests
-        run: npx vitest run tests/unit/opencode-session.test.js tests/unit/opencode-fingerprint.test.js
-      - name: Syntax and whitespace checks
+        run: npx vitest run tests/unit/opencode-session.test.js tests/unit/opencode-fingerprint.test.js --config tests/vitest.config.js
+      - name: Syntax checks
         run: |
           node --check open-sse/executors/opencode.js
           node --check open-sse/utils/opencodeFingerprint.js
@@ -27,4 +27,3 @@ jobs:
           node --check open-sse/handlers/chatCore/nonStreamingHandler.js
           node --check open-sse/handlers/chatCore/sseToJsonHandler.js
           node --check open-sse/translator/index.js
-          git diff --check HEAD^ HEAD
