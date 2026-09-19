@@ -9,33 +9,48 @@ jobs:
   probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch Cline Desktop recommended model feed
+      - name: Compare Cline Desktop and 9Router recommended model feeds
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail-with-body --silent --show-error \
-            'https://api.cline.bot/api/v1/ai/cline/recommended-models' \
-            -H 'HTTP-Referer: https://cline.bot' \
-            -H 'X-Title: Cline' \
-            -H 'X-IS-MULTIROOT: false' \
-            -H 'User-Agent: Cline/0.0.32' \
-            -H 'X-CLIENT-TYPE: cline-desktop' \
-            -H 'X-CLIENT-VERSION: 0.0.32' \
-            -H 'X-PLATFORM: Cline Desktop' \
-            -H 'X-PLATFORM-VERSION: 0.0.32' \
-            | tee /tmp/feed.json
-          echo
-          echo '--- Kimi entries ---'
+          endpoint='https://api.cline.bot/api/v1/ai/cline/recommended-models'
+
+          fetch_feed() {
+            local label="$1"
+            local user_agent="$2"
+            local client_type="$3"
+            local client_version="$4"
+            local platform="$5"
+            local platform_version="$6"
+            curl --fail-with-body --silent --show-error "$endpoint" \
+              -H 'HTTP-Referer: https://cline.bot' \
+              -H 'X-Title: Cline' \
+              -H 'X-IS-MULTIROOT: false' \
+              -H "User-Agent: $user_agent" \
+              -H "X-CLIENT-TYPE: $client_type" \
+              -H "X-CLIENT-VERSION: $client_version" \
+              -H "X-PLATFORM: $platform" \
+              -H "X-PLATFORM-VERSION: $platform_version" \
+              > "/tmp/${label}.json"
+          }
+
+          fetch_feed desktop 'Cline/0.0.32' 'cline-desktop' '0.0.32' 'Cline Desktop' '0.0.32'
+          fetch_feed router '9Router/0.5.81' '9router' '0.5.81' 'linux' 'v22.23.2'
+          fetch_feed sdk 'Cline/unknown' 'cline-sdk' 'unknown' 'cline-sdk' 'unknown'
+
           python3 - <<'PY'
           import json
-          with open('/tmp/feed.json') as f:
-              data = json.load(f)
-          for bucket in ('recommended','free','clinePass'):
-              for model in data.get(bucket, []):
-                  text = json.dumps(model, ensure_ascii=False).lower()
-                  if 'kimi' in text or 'moonshot' in text:
-                      print(bucket, json.dumps(model, ensure_ascii=False, sort_keys=True))
-          print('--- all free ids ---')
-          for model in data.get('free', []):
-              print(model.get('id'))
+
+          for label in ('desktop', 'router', 'sdk'):
+              with open(f'/tmp/{label}.json') as f:
+                  data = json.load(f)
+              print(f'--- {label} Kimi entries ---')
+              for bucket in ('recommended','free','clinePass','clineCloud'):
+                  for model in data.get(bucket, []):
+                      text = json.dumps(model, ensure_ascii=False).lower()
+                      if 'kimi' in text or 'moonshot' in text:
+                          print(bucket, json.dumps(model, ensure_ascii=False, sort_keys=True))
+              print(f'--- {label} free ids ---')
+              for model in data.get('free', []):
+                  print(model.get('id'))
           PY
