@@ -1,0 +1,30 @@
+name: tmp-opencode-final-test
+
+on:
+  push:
+    branches:
+      - test/opencode-fingerprint-final
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install dependencies
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm install --no-save --ignore-scripts --no-audit --no-fund vitest@3.2.4
+      - name: Focused unit tests
+        run: npx vitest run tests/unit/opencode-session.test.js tests/unit/opencode-fingerprint.test.js
+      - name: Syntax and whitespace checks
+        run: |
+          node --check open-sse/executors/opencode.js
+          node --check open-sse/utils/opencodeFingerprint.js
+          node --check open-sse/handlers/chatCore.js
+          node --check open-sse/handlers/chatCore/nonStreamingHandler.js
+          node --check open-sse/handlers/chatCore/sseToJsonHandler.js
+          node --check open-sse/translator/index.js
+          git diff --check HEAD^ HEAD
